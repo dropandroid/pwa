@@ -173,6 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      let cachedData = null;
+      let status: CustomerVerificationStatus = 'unverified';
       if (user) {
         setUser(user);
         try {
@@ -180,8 +182,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (cachedDataString) {
             const parsedData = JSON.parse(cachedDataString);
             if (parsedData.emailId === user.email || parsedData.google_email === user.email) {
-              setCustomerDataState(parsedData); 
-              setCustomerStatusState(parsedData._verificationStatus || 'unverified');
+              cachedData = parsedData;
+              status = parsedData._verificationStatus || 'unverified';
             } else {
               localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
             }
@@ -191,11 +193,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
         }
       } else {
-        setUser(null);
-        setCustomerStatusState('unverified');
-        setCustomerDataState(null);
         localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
       }
+      
+      setUser(user);
+      setCustomerDataState(cachedData);
+      setCustomerStatusState(status);
       setLoading(false);
     });
 
@@ -287,3 +290,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    
