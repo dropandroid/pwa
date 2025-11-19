@@ -7,35 +7,18 @@ import { Download, Share } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { useToast } from '@/hooks/use-toast';
 
-export function InstallPage() {
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
+export function InstallPage({ installPrompt }: { installPrompt: any }) {
   const [isIos, setIsIos] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the default prompt
-      e.preventDefault();
-      // Stash the event so it can be triggered later.
-      setInstallPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Detect if the user is on an iOS device
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIos(isIOSDevice);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
   }, []);
 
   const handleInstallClick = async () => {
     if (installPrompt) {
-      // Show the install prompt
       installPrompt.prompt();
-      // Wait for the user to respond to the prompt
       const { outcome } = await installPrompt.userChoice;
       if (outcome === 'accepted') {
         toast({
@@ -46,16 +29,12 @@ export function InstallPage() {
         toast({
           title: 'Installation Cancelled',
           description: 'You can install the app anytime from this page.',
+          variant: 'destructive'
         });
       }
-      // We can only use the prompt once, so clear it.
-      setInstallPrompt(null);
     } else {
-      // If installPrompt is not available, it means the browser doesn't support it,
-      // or the app is already installed, or the user is on iOS.
-      // In any case, showing manual instructions is the best fallback.
-      toast({
-        title: 'Manual Installation',
+       toast({
+        title: 'Manual Installation Required',
         description: 'Please follow the browser instructions to add this app to your home screen.',
       });
     }
@@ -109,7 +88,7 @@ export function InstallPage() {
                     <Download className="mr-2 h-5 w-5" />
                     Install Now
                 </Button>
-                {renderManualInstructions()}
+                {(!installPrompt || isIos) && renderManualInstructions()}
             </CardContent>
         </Card>
 

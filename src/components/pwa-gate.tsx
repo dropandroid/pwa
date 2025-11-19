@@ -7,29 +7,33 @@ import { Loader2 } from 'lucide-react';
 
 export function PwaGate({ children }: { children: ReactNode }) {
   const [isPwa, setIsPwa] = useState<boolean | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
 
   useEffect(() => {
-    // This effect runs only on the client side
-    // 'standalone' is the standard display mode for installed PWAs.
-    // 'minimal-ui' is also used by some browsers for installed web apps.
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      console.log("PWA Gate: beforeinstallprompt event captured!");
+    };
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: minimal-ui)').matches;
-    
-    // Forcing a true condition for local testing if needed
-    // const isInstalled = true;
-    
     setIsPwa(isInstalled);
+
+    return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
-  // Condition 1: Check for app install
+  // Condition 1: App is installed and running in PWA mode.
   if (isPwa === true) {
-    // If installed, redirect to the app automatically by rendering the children.
     return <>{children}</>;
   }
 
-  // Condition 2: App not detected
+  // Condition 2: App is not installed, show the installation page.
   if (isPwa === false) {
-    // If not installed, always trigger the "Install Now" page.
-    return <InstallPage />;
+    return <InstallPage installPrompt={installPrompt} />;
   }
   
   // While checking, show a loading state to prevent content flashing.
