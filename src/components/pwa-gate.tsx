@@ -11,7 +11,11 @@ export function PwaGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     // This effect runs only on the client side
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    setIsPwa(isStandalone);
+    // Check for other potential standalone modes used by different browsers/OS
+    const isMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
+    const isInstalled = isStandalone || isMinimalUi;
+    
+    setIsPwa(isInstalled);
   }, []);
 
   if (isPwa === null) {
