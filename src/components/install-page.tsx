@@ -14,12 +14,16 @@ export function InstallPage() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the browser's default install prompt
       e.preventDefault();
+      // Stash the event so it can be triggered later.
       setInstallPrompt(e);
     };
 
+    // Listen for the install prompt event
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // Detect if the user is on an iOS device
     setIsIos(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
 
     return () => {
@@ -28,25 +32,25 @@ export function InstallPage() {
   }, []);
 
   const handleInstallClick = async () => {
+    // If the install prompt is available, show it.
     if (installPrompt) {
       installPrompt.prompt();
+      // Wait for the user to respond to the prompt
       const { outcome } = await installPrompt.userChoice;
       if (outcome === 'accepted') {
         toast({
           title: 'App Installed!',
-          description: 'The Droppurity app has been added to your device.',
+          description: 'The Droppurity app has been added to your home screen.',
         });
       }
       setInstallPrompt(null);
-    } else if (isIos) {
+    } else {
+      // If the prompt isn't available, it means the app can't be installed automatically.
+      // This is expected on iOS and some desktop browsers. Show manual instructions.
       toast({
         title: 'Manual Installation Required',
-        description: "Tap the 'Share' button, then 'Add to Home Screen'.",
-      });
-    } else {
-       toast({
-        title: 'Manual Installation Required',
-        description: "Use your browser's menu to 'Install App' or 'Add to Home Screen'.",
+        description: "Please follow the instructions below to add the app to your device.",
+        duration: 5000,
       });
     }
   };
@@ -54,11 +58,11 @@ export function InstallPage() {
   const renderManualInstructions = () => {
     const iosSteps = (
       <>
-        <p className="font-semibold text-foreground">To install on iOS:</p>
+        <p className="font-semibold text-foreground">To install on your Apple device:</p>
         <ol className="list-decimal list-inside space-y-2">
-          <li>Tap the 'Share' button <Share className="inline-block h-4 w-4" /> in your browser.</li>
+          <li>Tap the 'Share' button <Share className="inline-block h-4 w-4" /> in your browser's toolbar.</li>
           <li>Scroll down and select 'Add to Home Screen'.</li>
-          <li>Confirm by tapping 'Add'.</li>
+          <li>Confirm by tapping 'Add' in the top right.</li>
         </ol>
       </>
     );
@@ -67,14 +71,14 @@ export function InstallPage() {
       <>
         <p className="font-semibold text-foreground">To install on your device:</p>
         <ol className="list-decimal list-inside space-y-2">
-           <li>Open your browser's menu (usually three dots).</li>
+           <li>Open your browser's menu (usually three dots or an icon).</li>
            <li>Look for and tap "Install App" or "Add to Home Screen".</li>
         </ol>
       </>
     );
 
     return (
-      <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
+      <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md border">
         {isIos ? iosSteps : otherSteps}
       </div>
     );
@@ -91,7 +95,7 @@ export function InstallPage() {
             <CardHeader>
                 <CardTitle>Install the App</CardTitle>
                 <CardDescription>
-                    For the best experience, install the Droppurity app on your device.
+                    For the best experience, install the Droppurity app on your device for offline access and notifications.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -104,7 +108,7 @@ export function InstallPage() {
         </Card>
 
         <p className="text-xs text-muted-foreground mt-12">
-            This application is designed to run as an installed Progressive Web App (PWA).
+            This application is a Progressive Web App (PWA), which runs like a native app.
         </p>
       </div>
     </div>

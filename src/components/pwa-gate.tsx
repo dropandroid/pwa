@@ -10,29 +10,33 @@ export function PwaGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // This effect runs only on the client side
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    // Check for other potential standalone modes used by different browsers/OS
-    const isMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
-    const isInstalled = isStandalone || isMinimalUi;
+    // 'standalone' is the standard display mode for installed PWAs.
+    // 'minimal-ui' is also used by some browsers for installed web apps.
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: minimal-ui)').matches;
+    
+    // Forcing a true condition for local testing if needed
+    // const isInstalled = true;
     
     setIsPwa(isInstalled);
   }, []);
 
-  if (isPwa === null) {
-    // While we're checking, show a loading state to avoid flashes of content
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-muted-foreground mt-4">Loading...</p>
-      </div>
-    );
-  }
-
-  if (isPwa) {
-    // If it's a PWA, render the actual application
+  // Condition 1: Check for app install
+  if (isPwa === true) {
+    // If installed, redirect to the app automatically by rendering the children.
     return <>{children}</>;
   }
 
-  // If it's not a PWA, show the installation prompt page
-  return <InstallPage />;
+  // Condition 2: App not detected
+  if (isPwa === false) {
+    // If not installed, always trigger the "Install Now" page.
+    return <InstallPage />;
+  }
+  
+  // While checking, show a loading state to prevent content flashing.
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <p className="text-muted-foreground mt-4">Loading...</p>
+    </div>
+  );
 }
