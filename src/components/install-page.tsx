@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,14 +38,11 @@ export function InstallPage() {
 
       if (outcome === 'accepted') {
         setIsInstalling(true);
-        toast({
-          title: 'Installation Started',
-          description: 'Completing setup. The app will reload shortly.',
-        });
-        // Wait 5 seconds to give the browser time to finish installation
+        // Wait 10 seconds to give the browser time to finish installation
+        // before reloading to check the display mode again.
         setTimeout(() => {
           window.location.reload();
-        }, 5000);
+        }, 10000);
       } else {
         toast({
           variant: "destructive",
@@ -115,7 +113,7 @@ export function InstallPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Button onClick={handleInstallClick} size="lg" className="w-full" disabled={!installPrompt && !isIos}>
+                <Button onClick={handleInstallClick} size="lg" className="w-full">
                     <Download className="mr-2 h-5 w-5" />
                     Install Now
                 </Button>
