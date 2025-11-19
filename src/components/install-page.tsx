@@ -14,17 +14,17 @@ export function InstallPage() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the browser's default install prompt
+      // Prevent the default prompt
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setInstallPrompt(e);
     };
 
-    // Listen for the install prompt event
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // Detect if the user is on an iOS device
-    setIsIos(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIos(isIOSDevice);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -32,25 +32,31 @@ export function InstallPage() {
   }, []);
 
   const handleInstallClick = async () => {
-    // If the install prompt is available, show it.
     if (installPrompt) {
+      // Show the install prompt
       installPrompt.prompt();
       // Wait for the user to respond to the prompt
       const { outcome } = await installPrompt.userChoice;
       if (outcome === 'accepted') {
         toast({
-          title: 'App Installed!',
-          description: 'The Droppurity app has been added to your home screen.',
+          title: 'Installation Complete!',
+          description: 'The Droppurity app is now on your home screen.',
+        });
+      } else {
+        toast({
+          title: 'Installation Cancelled',
+          description: 'You can install the app anytime from this page.',
         });
       }
+      // We can only use the prompt once, so clear it.
       setInstallPrompt(null);
     } else {
-      // If the prompt isn't available, it means the app can't be installed automatically.
-      // This is expected on iOS and some desktop browsers. Show manual instructions.
+      // If installPrompt is not available, it means the browser doesn't support it,
+      // or the app is already installed, or the user is on iOS.
+      // In any case, showing manual instructions is the best fallback.
       toast({
-        title: 'Manual Installation Required',
-        description: "Please follow the instructions below to add the app to your device.",
-        duration: 5000,
+        title: 'Manual Installation',
+        description: 'Please follow the browser instructions to add this app to your home screen.',
       });
     }
   };
