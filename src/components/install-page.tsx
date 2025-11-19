@@ -1,15 +1,15 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, Share } from 'lucide-react';
+import { Download, Share, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { useToast } from '@/hooks/use-toast';
 
 export function InstallPage() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isIos, setIsIos] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -29,16 +29,25 @@ export function InstallPage() {
   }, []);
 
   const handleInstallClick = async () => {
+    if (isInstalling) return;
+
     if (installPrompt) {
       installPrompt.prompt();
       const { outcome } = await installPrompt.userChoice;
+
       if (outcome === 'accepted') {
+        setIsInstalling(true);
         toast({
-          title: 'Installation Complete!',
-          description: 'The Droppurity app is now on your home screen.',
+          title: 'Installation Started',
+          description: 'Completing setup. The app will reload shortly.',
         });
+        // Wait 5 seconds to give the browser time to finish installation
+        setTimeout(() => {
+          window.location.reload();
+        }, 5000);
       } else {
         toast({
+          variant: "destructive",
           title: 'Installation Cancelled',
           description: 'You can install the app anytime from this page.',
         });
@@ -81,6 +90,17 @@ export function InstallPage() {
   };
 
 
+  if (isInstalling) {
+     return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <h2 className="mt-6 text-xl font-semibold">Completing installation...</h2>
+            <p className="text-muted-foreground mt-2">The application will start shortly.</p>
+        </div>
+     )
+  }
+
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md text-center">
@@ -95,7 +115,7 @@ export function InstallPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Button onClick={handleInstallClick} size="lg" className="w-full">
+                <Button onClick={handleInstallClick} size="lg" className="w-full" disabled={!installPrompt && !isIos}>
                     <Download className="mr-2 h-5 w-5" />
                     Install Now
                 </Button>
