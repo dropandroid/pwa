@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Check, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
@@ -25,6 +25,11 @@ export function InstallPage() {
     // Detect iOS
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(isIOSDevice);
+    
+    // Show instructions by default on iOS since there is no install prompt
+    if (isIOSDevice) {
+        setShowInstructions(true);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -40,6 +45,7 @@ export function InstallPage() {
           toast({
             title: 'Installation Started',
             description: 'The app is being added to your device.',
+            icon: <Check className="h-5 w-5 text-green-500" />,
           });
         } else {
           console.log('User dismissed the install prompt');
@@ -47,8 +53,14 @@ export function InstallPage() {
         setInstallPrompt(null);
       });
     } else {
-      // If no prompt, show manual instructions
+      // If no prompt is available, just show the manual instructions.
       setShowInstructions(true);
+      if (!isIOS) {
+           toast({
+            title: "Manual Installation",
+            description: "Follow the steps below to install the app.",
+          });
+      }
     }
   };
 
@@ -73,7 +85,7 @@ export function InstallPage() {
             <p className="font-semibold text-foreground">To install this app on your device:</p>
             <ol className="list-decimal list-inside space-y-2">
                 <li>Look for an install icon (often a screen with a down arrow) in your browser's address bar.</li>
-                <li>Alternatively, check your browser's menu (usually three dots) for an "Install App" or "Add to Home Screen" option.</li>
+                <li>Alternatively, check your browser's menu for an "Install App" or "Add to Home Screen" option.</li>
             </ol>
             <p className="pt-2">If you don't see these options, your browser may not support PWA installation.</p>
         </div>
