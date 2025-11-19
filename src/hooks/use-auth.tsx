@@ -173,18 +173,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      let cachedData = null;
+      let cachedData: CustomerData | null = null;
       let status: CustomerVerificationStatus = 'unverified';
+      
+      setUser(user); // Set user immediately
+
       if (user) {
-        setUser(user);
         try {
           const cachedDataString = localStorage.getItem(CUSTOMER_DATA_STORAGE_KEY);
           if (cachedDataString) {
             const parsedData = JSON.parse(cachedDataString);
+            // Verify that the cached data belongs to the currently signed-in user
             if (parsedData.emailId === user.email || parsedData.google_email === user.email) {
               cachedData = parsedData;
               status = parsedData._verificationStatus || 'unverified';
             } else {
+              // Clear stale data if it doesn't match the user
               localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
             }
           }
@@ -193,17 +197,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
         }
       } else {
+        // If no user, ensure local storage is clean
         localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
       }
       
-      setUser(user);
       setCustomerDataState(cachedData);
       setCustomerStatusState(status);
-      setLoading(false);
+      setLoading(false); // Set loading to false only after all state is determined
     });
 
     return () => unsubscribe();
   }, []);
+
 
   useEffect(() => {
      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -228,19 +233,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    useEffect(() => {
     if (loading) return;
 
-    const isPublicPage = pathname === '/login' || pathname === '/verify-customer' || pathname === '/admin' || pathname === '/setup';
+    const isPublicPage = pathname === '/login' || pathname === '/verify-customer' || pathname.startsWith('/admin');
 
+    // If user is not logged in and not on a public page, redirect to login
     if (!user && !isPublicPage) {
       router.push('/login');
-    } else if (user && pathname === '/login' && customerStatus === 'verified') {
-        router.push('/');
-    } else if (user && customerStatus === 'unverified' && !isPublicPage) {
-      router.push('/verify-customer');
-    } else if (user && customerStatus === 'verified' && pathname === '/verify-customer') {
-      router.push('/');
+      return;
     }
 
-  }, [user, loading, pathname, router, customerStatus]);
+    // If user is logged in, handle routing based on verification status
+    if (user) {
+      if (customerStatus === 'unverified' && !isPublicPage) {
+        router.push('/verify-customer');
+      } else if (customerStatus === 'verified' && (pathname === '/login' || pathname === '/verify-customer')) {
+        router.push('/');
+      }
+    }
+
+  }, [user, customerStatus, loading, pathname, router]);
 
   const signInWithGoogle = async (): Promise<SignInResult> => {
     const provider = new GoogleAuthProvider();
@@ -290,5 +300,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    
