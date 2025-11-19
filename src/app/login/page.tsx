@@ -1,10 +1,11 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { PwaGate } from '@/components/pwa-gate';
 import { Button } from "@/components/ui/button";
-import { Loader2, ExternalLink, Phone, LogOut, Download } from "lucide-react";
+import { Loader2, ExternalLink, Phone, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const GoogleIcon = () => (
@@ -18,40 +19,10 @@ const GoogleIcon = () => (
 );
 
 
-export default function LoginPage() {
+function AppContent() {
     const { signInWithGoogle, loading, user, signOut, auth } = useAuth();
     const [signInState, setSignInState] = useState<'default' | 'loading' | 'unregistered'>('default');
-    const [installPrompt, setInstallPrompt] = useState<any>(null);
     const { toast } = useToast();
-
-    useEffect(() => {
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault();
-            setInstallPrompt(e);
-        };
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    }, []);
-
-    const handleInstallClick = () => {
-        if (installPrompt) {
-            installPrompt.prompt();
-            installPrompt.userChoice.then((choiceResult: { outcome: string }) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                } else {
-                    console.log('User dismissed the install prompt');
-                }
-                setInstallPrompt(null);
-            });
-        } else {
-            toast({
-                title: 'App Already Installed or Not Supported',
-                description: 'You can install this app from your browser\'s menu if supported.',
-            });
-        }
-    };
-
 
     const handleSignIn = async () => {
         setSignInState('loading');
@@ -143,12 +114,6 @@ export default function LoginPage() {
                         Switch Account
                     </Button>
                  )}
-                 {installPrompt && (
-                    <Button onClick={handleInstallClick} size="lg" variant="outline" className="w-full">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download App
-                    </Button>
-                )}
                 <div className="text-center pt-4">
                     <p className="text-sm text-muted-foreground">New here?</p>
                     <Button size="lg" variant="outline" className="w-full mt-2" onClick={handleBuyPlanClick}>
@@ -177,4 +142,10 @@ export default function LoginPage() {
     );
 }
 
-    
+export default function LoginPage() {
+    return (
+        <PwaGate>
+            <AppContent />
+        </PwaGate>
+    )
+}

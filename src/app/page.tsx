@@ -1,6 +1,7 @@
 
 "use client";
 
+import { PwaGate } from '@/components/pwa-gate';
 import type { FC } from 'react';
 import { useState } from 'react';
 import { useRoData } from '@/hooks/use-ro-data';
@@ -12,7 +13,6 @@ import { SettingsTab } from '@/components/tabs/settings-tab';
 import { ProfileTab } from '@/components/tabs/profile-tab';
 import { LiveDeviceTab } from '@/components/tabs/live-device-tab';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { WifiOff, User, Home as HomeIcon, Phone, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
@@ -33,12 +33,6 @@ const AppSkeleton: FC = () => (
 const DisconnectedState: FC = () => {
     const { customerData } = useAuth();
     
-    const handleSetupDevice = () => {
-      // This function is now primarily for web fallback.
-      // The main setup flow is handled by linking to the /setup page.
-      alert("Please open the app on your Android device to set up a new device, or navigate to the 'Live' tab for setup instructions.");
-    };
-
     return (
         <div className="p-4 mt-8">
             <Card>
@@ -70,7 +64,7 @@ const DisconnectedState: FC = () => {
 };
 
 
-export default function Home() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState('home');
   const roData = useRoData();
   const { user, loading, customerStatus, customerData } = useAuth();
@@ -84,7 +78,6 @@ export default function Home() {
   }
   
   if (customerStatus !== 'verified' || !customerData) {
-      // This state is handled by the useAuth hook redirecting to /verify-customer
       return (
         <div className="flex items-center justify-center min-h-screen">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -126,4 +119,12 @@ export default function Home() {
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
+}
+
+export default function Home() {
+  return (
+    <PwaGate>
+      <AppContent />
+    </PwaGate>
+  )
 }
