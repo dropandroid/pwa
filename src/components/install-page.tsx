@@ -41,7 +41,7 @@ export function InstallPage() {
         console.log('User accepted the install prompt.');
         setInstallState('installing');
         // Give the browser a moment to start the installation process
-        setTimeout(() => setInstallState('completed'), 3000);
+        setTimeout(() => setInstallState('completed'), 15000);
       } else {
         console.log('User dismissed the install prompt.');
         setInstallState('declined');
