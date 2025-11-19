@@ -3,90 +3,81 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, Check, ExternalLink } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Download, Share } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 export function InstallPage() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [showInstructions, setShowInstructions] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+  const [isIos, setIsIos] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e);
-      console.log('beforeinstallprompt event fired.');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Detect iOS to show instructions by default
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIOS(isIOSDevice);
-    if (isIOSDevice) {
-        setShowInstructions(true);
-    }
+    setIsIos(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
 
-  const handleInstallClick = () => {
+  const handleInstallClick = async () => {
     if (installPrompt) {
       installPrompt.prompt();
-      installPrompt.userChoice.then((choiceResult: { outcome: string }) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
-          toast({
-            title: 'Installation Started',
-            description: 'The app is being added to your device.',
-            icon: <Check className="h-5 w-5 text-green-500" />,
-          });
-        } else {
-          console.log('User dismissed the install prompt');
-        }
-        setInstallPrompt(null);
+      const { outcome } = await installPrompt.userChoice;
+      if (outcome === 'accepted') {
+        toast({
+          title: 'App Installed!',
+          description: 'The Droppurity app has been added to your device.',
+        });
+      }
+      setInstallPrompt(null);
+    } else if (isIos) {
+      toast({
+        title: 'Manual Installation Required',
+        description: "Tap the 'Share' button, then 'Add to Home Screen'.",
       });
     } else {
-      // If no prompt is available, just show the manual instructions.
-      setShowInstructions(true);
-      if (!isIOS) {
-           toast({
-            title: "Manual Installation Required",
-            description: "Please follow the steps below to install the app.",
-          });
-      }
+       toast({
+        title: 'Manual Installation Required',
+        description: "Use your browser's menu to 'Install App' or 'Add to Home Screen'.",
+      });
     }
   };
 
-  const renderInstructions = () => {
-    if (!showInstructions) return null;
-
-    const iosInstructions = (
-        <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
-            <p className="font-semibold text-foreground">To install this app on your iPhone/iPad:</p>
-            <ol className="list-decimal list-inside space-y-2">
-                <li>Tap the 'Share' button in your browser's toolbar.</li>
-                <li>Scroll down and tap 'Add to Home Screen'.</li>
-                <li>Confirm by tapping 'Add'.</li>
-            </ol>
-        </div>
+  const renderManualInstructions = () => {
+    const iosSteps = (
+      <>
+        <p className="font-semibold text-foreground">To install on iOS:</p>
+        <ol className="list-decimal list-inside space-y-2">
+          <li>Tap the 'Share' button <Share className="inline-block h-4 w-4" /> in your browser.</li>
+          <li>Scroll down and select 'Add to Home Screen'.</li>
+          <li>Confirm by tapping 'Add'.</li>
+        </ol>
+      </>
     );
 
-    const androidChromeInstructions = (
-        <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
-            <p className="font-semibold text-foreground">To install this app on your device:</p>
-            <ol className="list-decimal list-inside space-y-2">
-                <li>Tap the menu button (three dots) in your browser's address bar.</li>
-                <li>Tap on "Install App" or "Add to Home Screen".</li>
-            </ol>
-        </div>
+    const otherSteps = (
+      <>
+        <p className="font-semibold text-foreground">To install on your device:</p>
+        <ol className="list-decimal list-inside space-y-2">
+           <li>Open your browser's menu (usually three dots).</li>
+           <li>Look for and tap "Install App" or "Add to Home Screen".</li>
+        </ol>
+      </>
     );
-    
-    return isIOS ? iosInstructions : androidChromeInstructions;
+
+    return (
+      <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
+        {isIos ? iosSteps : otherSteps}
+      </div>
+    );
   };
 
 
@@ -100,7 +91,7 @@ export function InstallPage() {
             <CardHeader>
                 <CardTitle>Install the App</CardTitle>
                 <CardDescription>
-                    For the best experience, please install the Droppurity app to your device.
+                    For the best experience, install the Droppurity app on your device.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -108,8 +99,7 @@ export function InstallPage() {
                     <Download className="mr-2 h-5 w-5" />
                     Install Now
                 </Button>
-
-                {renderInstructions()}
+                {renderManualInstructions()}
             </CardContent>
         </Card>
 
