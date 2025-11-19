@@ -3,24 +3,28 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, ArrowDown } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
 export function InstallPage() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e);
-      setIsInstallable(true);
       console.log('beforeinstallprompt event fired.');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Detect iOS
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(isIOSDevice);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -41,12 +45,41 @@ export function InstallPage() {
           console.log('User dismissed the install prompt');
         }
         setInstallPrompt(null);
-        setIsInstallable(false);
       });
+    } else {
+      // If no prompt, show manual instructions
+      setShowInstructions(true);
     }
   };
 
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  const renderInstructions = () => {
+    if (!showInstructions) return null;
+
+    if (isIOS) {
+      return (
+          <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
+              <p className="font-semibold text-foreground">To install this app on your iPhone/iPad:</p>
+              <ol className="list-decimal list-inside space-y-2">
+                  <li>Tap the 'Share' button in your browser's toolbar.</li>
+                  <li>Scroll down and tap 'Add to Home Screen'.</li>
+                  <li>Confirm by tapping 'Add'.</li>
+              </ol>
+          </div>
+      );
+    }
+
+    return (
+        <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
+            <p className="font-semibold text-foreground">To install this app on your device:</p>
+            <ol className="list-decimal list-inside space-y-2">
+                <li>Look for an install icon (often a screen with a down arrow) in your browser's address bar.</li>
+                <li>Alternatively, check your browser's menu (usually three dots) for an "Install App" or "Add to Home Screen" option.</li>
+            </ol>
+            <p className="pt-2">If you don't see these options, your browser may not support PWA installation.</p>
+        </div>
+    );
+  };
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
@@ -62,34 +95,12 @@ export function InstallPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {isInstallable && (
-                    <Button onClick={handleInstallClick} size="lg" className="w-full animate-bounce">
-                        <Download className="mr-2 h-5 w-5" />
-                        Install Now
-                    </Button>
-                )}
+                <Button onClick={handleInstallClick} size="lg" className="w-full">
+                    <Download className="mr-2 h-5 w-5" />
+                    Install Now
+                </Button>
 
-                {!isInstallable && isIOS && (
-                    <div className="text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
-                        <p className="font-semibold text-foreground">To install this app on your iPhone/iPad:</p>
-                        <ol className="list-decimal list-inside space-y-2">
-                            <li>Tap the 'Share' button in your browser's toolbar.</li>
-                            <li>Scroll down and tap 'Add to Home Screen'.</li>
-                            <li>Confirm by tapping 'Add'.</li>
-                        </ol>
-                    </div>
-                )}
-                
-                {!isInstallable && !isIOS && (
-                    <div className="text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
-                        <p className="font-semibold text-foreground">To install this app on your device:</p>
-                        <ol className="list-decimal list-inside space-y-2">
-                           <li>Look for an install icon (often a screen with a down arrow) in your browser's address bar.</li>
-                           <li>Alternatively, check your browser's menu (usually three dots) for an "Install App" or "Add to Home Screen" option.</li>
-                        </ol>
-                        <p className="pt-2">If you don't see these options, your browser may not support PWA installation.</p>
-                    </div>
-                )}
+                {renderInstructions()}
             </CardContent>
         </Card>
 
