@@ -3,10 +3,10 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/hooks/use-auth';
-import { manifest } from './manifest';
+import manifest from './manifest';
 
 export const metadata: Metadata = {
-  title: 'AquaTrack',
+  title: 'Droppurity',
   description: 'RO Monitor App by Firebase Studio',
   manifest: '/manifest.webmanifest',
 };
