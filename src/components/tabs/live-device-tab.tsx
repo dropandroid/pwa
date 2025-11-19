@@ -8,13 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Wifi, Router, Info, Plus, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-
 
 // --- Monitoring Mode Components ---
 
@@ -27,11 +20,9 @@ const LOCAL_STORAGE_KEY = 'monitoringDevices';
 
 const DeviceCard = ({ device, onRemove }: { device: Device, onRemove: (id: string) => void }) => {
   const handleViewExistingDevice = (ipAddress: string) => {
-    if (window.AndroidBridge && typeof window.AndroidBridge.startDeviceSetup === 'function') {
-      window.AndroidBridge.startDeviceSetup(ipAddress);
-    } else {
-      alert("This feature is only available in the DropPurity Android app.");
-    }
+    // In a PWA, we'd likely open this in a new tab or an iframe modal.
+    // For simplicity, we'll just open in a new tab.
+    window.open(`http://${ipAddress}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -158,12 +149,9 @@ const MonitoringMode = () => {
 
 const ConfigurationMode = () => {
     const handleStartNewDeviceSetup = () => {
-      if (window.AndroidBridge && typeof window.AndroidBridge.startDeviceSetup === 'function') {
-        // Call the function with an EMPTY string to start new setup
-        window.AndroidBridge.startDeviceSetup("");
-      } else {
-        alert("This feature is only available in the DropPurity Android app.");
-      }
+      // In a PWA, this would redirect to the device's hotspot IP, which is typically static.
+      // The user must be connected to the device's Wi-Fi hotspot first.
+      window.open('http://192.168.4.1', '_blank', 'noopener,noreferrer');
     };
     
     return (

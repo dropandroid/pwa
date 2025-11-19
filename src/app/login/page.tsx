@@ -24,57 +24,32 @@ export default function LoginPage() {
     const { toast } = useToast();
 
     const handleSignIn = async () => {
-        if (window.AndroidBridge && typeof window.AndroidBridge.triggerGoogleSignIn === 'function') {
-            console.log("Calling AndroidBridge.triggerGoogleSignIn()");
-            window.AndroidBridge.triggerGoogleSignIn();
-        } else {
-            console.log("Using standard web signInWithGoogle()");
-            setSignInState('loading');
-            const result = await signInWithGoogle();
-            if (result === 'unregistered') {
-                if (window.AndroidBridge && typeof window.AndroidBridge.onEmailNotFound === 'function' && auth.currentUser?.email) {
-                    window.AndroidBridge.onEmailNotFound(auth.currentUser.email);
-                } else {
-                    setSignInState('unregistered');
-                }
-            } else if (result === 'error') {
-                setSignInState('default');
-                 toast({
-                    variant: "destructive",
-                    title: "Sign-In Error",
-                    description: "An unexpected error occurred during sign-in. Please try again.",
-                });
-            }
+        setSignInState('loading');
+        const result = await signInWithGoogle();
+        if (result === 'unregistered') {
+            setSignInState('unregistered');
+        } else if (result === 'error') {
+            setSignInState('default');
+             toast({
+                variant: "destructive",
+                title: "Sign-In Error",
+                description: "An unexpected error occurred during sign-in. Please try again.",
+            });
         }
     };
     
     const handleCallSupport = () => {
         const phoneNumber = '7979784087';
-        if (window.AndroidBridge && typeof window.AndroidBridge.triggerPhoneCall === 'function') {
-            window.AndroidBridge.triggerPhoneCall(phoneNumber);
-        } else {
-            window.location.href = `tel:${phoneNumber}`;
-        }
+        window.location.href = `tel:${phoneNumber}`;
     };
 
     const handleBuyPlanClick = () => {
         const url = "https://droppurity.in";
-        if (window.AndroidBridge && typeof window.AndroidBridge.openExternalUrl === 'function') {
-            window.AndroidBridge.openExternalUrl(url);
-        } else {
-            window.open(url, '_blank', 'noopener,noreferrer');
-        }
-    };
-
-    const handleHybridSignOut = async () => {
-        if (window.AndroidBridge && typeof window.AndroidBridge.triggerNativeSignOut === 'function') {
-            window.AndroidBridge.triggerNativeSignOut();
-        }
-        await signOut(); 
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     const handleSwitchAccount = async () => {
-        handleHybridSignOut();
+        await signOut();
     };
     
     const renderContent = () => {
@@ -107,7 +82,7 @@ export default function LoginPage() {
                              <Button size="sm" variant="link" onClick={handleSwitchAccount}>
                                 Try a different email
                             </Button>
-                            <Button size="sm" variant="link" className="text-muted-foreground" onClick={handleHybridSignOut}>
+                            <Button size="sm" variant="link" className="text-muted-foreground" onClick={signOut}>
                                 <LogOut className="mr-1 h-3 w-3" />
                                 Sign Out
                             </Button>

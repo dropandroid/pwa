@@ -12,7 +12,6 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithCredential,
   User,
   signOut as firebaseSignOut,
   Auth,
@@ -46,22 +45,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const CUSTOMER_DATA_STORAGE_KEY = 'aquaTrackCustomerData';
-
-// Extend window type for our native bridges
-declare global {
-  interface Window {
-    signInFromAndroid?: (token: string) => void;
-    signOutFromAndroid?: () => void;
-    AndroidBridge?: {
-        requestFCMToken: () => void;
-        triggerGoogleSignIn: () => void;
-        triggerNativeSignOut: () => void;
-        onEmailNotFound: (email: string) => void;
-        triggerPhoneCall: (phoneNumber: string) => void;
-        openExternalUrl: (url: string) => void;
-    };
-  }
-}
 
 let pendingToken: string | null = null;
 
@@ -123,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const saveTokenToDb = async (customerId: string, token: string) => {
-    console.log(`✅ [Step 4: The Database] Attempting to save token for customerId: ${customerId}`);
+    console.log(`[DB] Attempting to save token for customerId: ${customerId}`);
     try {
       const response = await fetch('/api/save-token', {
         method: 'POST',
@@ -138,15 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[Auth Hook] Error calling /api/save-token:", error);
     }
   };
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.requestFCMToken === 'function') {
-      console.log("AuthProvider: Ready! Requesting FCM token from Android...");
-      window.AndroidBridge.requestFCMToken();
-    } else {
-      console.log("AuthProvider: Not running in native Android app, skipping token request.");
-    }
-  }, []);
 
   const signOut = async () => {
     try {
@@ -176,12 +150,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const messaging = getMessaging(app);
         const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
-        if (currentToken && customerData) {
-          console.log('FCM Token:', currentToken);
+        if (currentToken) {
           setFcmToken(currentToken);
-          await saveTokenToDb(customerData.generatedCustomerId, currentToken);
+          if (customerData?.generatedCustomerId) {
+            console.log('FCM Token:', currentToken);
+            await saveTokenToDb(customerData.generatedCustomerId, currentToken);
+          } else {
+            console.log('Customer data not ready, holding token.');
+            pendingToken = currentToken;
+          }
         } else {
-          console.log('No registration token available or customer data not ready.');
+          console.log('No registration token available.');
         }
       } catch (err) {
         console.error('An error occurred while retrieving token. ', err);
@@ -191,71 +170,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return permission;
   }
-  
-  useEffect(() => {
-    const handleTokenReceived = (event: Event) => {
-        const token = (event as CustomEvent<string>).detail;
-        console.log("✅ [Step 2: The Catch] 'fcmTokenReceived' event caught in hook.");
-        if (token) {
-            setFcmToken(token);
-            if (customerData?.generatedCustomerId) {
-                console.log(`[Auth Hook] Customer data is ready. Immediately saving token for ${customerData.generatedCustomerId}.`);
-                saveTokenToDb(customerData.generatedCustomerId, token);
-            } else {
-                console.log("[Auth Hook] Customer data not yet available. Holding token.");
-                pendingToken = token;
-            }
-        } else {
-            console.warn("[Auth Hook] fcmTokenReceived event dispatched with a null or empty token.");
-        }
-    };
-    window.addEventListener('fcmTokenReceived', handleTokenReceived);
-
-    return () => {
-        window.removeEventListener('fcmTokenReceived', handleTokenReceived);
-    };
-}, [customerData]);
-
-
-  useEffect(() => {
-    const signInFromAndroid = (googleIdToken: string) => {
-      console.log("Attempting sign in from Android with token...");
-      const credential = GoogleAuthProvider.credential(googleIdToken);
-      
-      signInWithCredential(auth, credential)
-        .then(async (result) => {
-          console.log("Signed in from Android!", result.user);
-          const authResult = await handleAuthSuccess(result.user);
-           if (authResult === 'unregistered' && window.AndroidBridge && typeof window.AndroidBridge.onEmailNotFound === 'function') {
-                if (result.user.email) {
-                    window.AndroidBridge.onEmailNotFound(result.user.email);
-                }
-            }
-        })
-        .catch((error) => {
-          console.error("Android Sign-In Error", error);
-          toast({
-            variant: "destructive",
-            title: "Android Sign-In Error",
-            description: "Could not sign in using the provided token."
-          });
-        });
-    };
-
-    const signOutFromAndroid = () => {
-        console.log("Signing out via Android bridge...");
-        signOut();
-    };
-
-    window.signInFromAndroid = signInFromAndroid;
-    window.signOutFromAndroid = signOutFromAndroid;
-
-    return () => {
-      delete window.signInFromAndroid;
-      delete window.signOutFromAndroid;
-    };
-  }, [router, toast]);
-
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {

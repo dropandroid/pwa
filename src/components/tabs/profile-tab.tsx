@@ -27,13 +27,6 @@ export const ProfileTab: FC<ProfileTabProps> = ({ setRoDevice }) => {
   const { toast } = useToast();
   const { user, signOut, customerData } = useAuth();
 
-  const handleHybridSignOut = async () => {
-    if (window.AndroidBridge && typeof window.AndroidBridge.triggerNativeSignOut === 'function') {
-        window.AndroidBridge.triggerNativeSignOut();
-    }
-    await signOut(); 
-  };
-
   const handleExtendRental = () => {
     if (!customerData?.planEndDate) return;
     const extendedDate = new Date(customerData.planEndDate);
@@ -131,7 +124,7 @@ export const ProfileTab: FC<ProfileTabProps> = ({ setRoDevice }) => {
       </Card>
 
       <div className="pt-4">
-        <Button variant="ghost" className="w-full" onClick={handleHybridSignOut}>
+        <Button variant="ghost" className="w-full" onClick={signOut}>
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
       </div>
