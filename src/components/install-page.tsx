@@ -22,11 +22,9 @@ export function InstallPage() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Detect iOS
+    // Detect iOS to show instructions by default
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(isIOSDevice);
-    
-    // Show instructions by default on iOS since there is no install prompt
     if (isIOSDevice) {
         setShowInstructions(true);
     }
@@ -57,8 +55,8 @@ export function InstallPage() {
       setShowInstructions(true);
       if (!isIOS) {
            toast({
-            title: "Manual Installation",
-            description: "Follow the steps below to install the app.",
+            title: "Manual Installation Required",
+            description: "Please follow the steps below to install the app.",
           });
       }
     }
@@ -67,29 +65,28 @@ export function InstallPage() {
   const renderInstructions = () => {
     if (!showInstructions) return null;
 
-    if (isIOS) {
-      return (
-          <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
-              <p className="font-semibold text-foreground">To install this app on your iPhone/iPad:</p>
-              <ol className="list-decimal list-inside space-y-2">
-                  <li>Tap the 'Share' button in your browser's toolbar.</li>
-                  <li>Scroll down and tap 'Add to Home Screen'.</li>
-                  <li>Confirm by tapping 'Add'.</li>
-              </ol>
-          </div>
-      );
-    }
+    const iosInstructions = (
+        <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
+            <p className="font-semibold text-foreground">To install this app on your iPhone/iPad:</p>
+            <ol className="list-decimal list-inside space-y-2">
+                <li>Tap the 'Share' button in your browser's toolbar.</li>
+                <li>Scroll down and tap 'Add to Home Screen'.</li>
+                <li>Confirm by tapping 'Add'.</li>
+            </ol>
+        </div>
+    );
 
-    return (
+    const androidChromeInstructions = (
         <div className="mt-4 text-sm text-muted-foreground space-y-3 text-left bg-muted p-4 rounded-md">
             <p className="font-semibold text-foreground">To install this app on your device:</p>
             <ol className="list-decimal list-inside space-y-2">
-                <li>Look for an install icon (often a screen with a down arrow) in your browser's address bar.</li>
-                <li>Alternatively, check your browser's menu for an "Install App" or "Add to Home Screen" option.</li>
+                <li>Tap the menu button (three dots) in your browser's address bar.</li>
+                <li>Tap on "Install App" or "Add to Home Screen".</li>
             </ol>
-            <p className="pt-2">If you don't see these options, your browser may not support PWA installation.</p>
         </div>
     );
+    
+    return isIOS ? iosInstructions : androidChromeInstructions;
   };
 
 
