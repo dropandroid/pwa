@@ -7,13 +7,25 @@ import { Download, Share } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { useToast } from '@/hooks/use-toast';
 
-export function InstallPage({ installPrompt }: { installPrompt: any }) {
+export function InstallPage() {
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isIos, setIsIos] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIos(isIOSDevice);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   const handleInstallClick = async () => {
@@ -29,7 +41,6 @@ export function InstallPage({ installPrompt }: { installPrompt: any }) {
         toast({
           title: 'Installation Cancelled',
           description: 'You can install the app anytime from this page.',
-          variant: 'destructive'
         });
       }
     } else {
