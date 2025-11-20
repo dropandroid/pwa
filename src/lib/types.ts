@@ -89,3 +89,4 @@ export interface CustomerData {
   updatedAt?: string;
   [key: string]: any; // For any other fields like _verificationStatus
 }
+

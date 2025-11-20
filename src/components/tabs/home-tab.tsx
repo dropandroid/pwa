@@ -129,7 +129,7 @@ export const HomeTab: FC<HomeTabProps> = (props) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{roDevice.totalLiters.toFixed(1)}L</div>
-            <p className="text-xs text-muted-foreground">of {roDevice.totalLimit}L limit</p>
+            <p className="text-xs text-muted-foreground">of {roDevice.totalLimit.toFixed(0)}L limit</p>
           </CardContent>
         </Card>
       </div>
@@ -141,7 +141,7 @@ export const HomeTab: FC<HomeTabProps> = (props) => {
         <CardContent>
           <div className="flex justify-between text-sm mb-1">
             <span className="text-muted-foreground">Used</span>
-            <span>{roDevice.totalLiters.toFixed(1)}L / {roDevice.totalLimit.toFixed(1)}L ({Math.round(usagePercentage)}%)</span>
+            <span>{roDevice.totalLiters.toFixed(1)}L / {roDevice.totalLimit.toFixed(0)}L ({Math.round(usagePercentage)}%)</span>
           </div>
           <div className="w-full bg-muted rounded-full h-3">
               <div 

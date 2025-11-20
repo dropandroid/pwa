@@ -54,8 +54,12 @@ const createInitialDeviceState = (customerData: CustomerData | null): RODevice =
     const maxHours = customerData.espCycleMaxHours || 1;
     const totalLimit = maxHours * LITERS_PER_HOUR;
     
-    // Placeholder for filter life calculation
+    // Placeholder for filter life calculation, assuming a 6000L filter capacity
     const filterLife = 100 - ((totalLiters / 6000) * 100);
+    const installationDate = customerData.installationDate || new Date().toISOString();
+    const nextServiceDate = new Date(installationDate);
+    nextServiceDate.setMonth(nextServiceDate.getMonth() + 3);
+
 
     return {
       deviceName: customerData.modelInstalled || "My RO Water Purifier",
@@ -64,13 +68,13 @@ const createInitialDeviceState = (customerData: CustomerData | null): RODevice =
       endDate: customerData.planEndDate || new Date().toISOString(),
       todayUsage: 0, // This is not available in the data, so it remains a placeholder
       monthlyUsage: totalLiters, 
-      dailyLimit: customerData.currentPlanTotalLitersLimit || 50, // daily limit seems separate
+      dailyLimit: customerData.currentPlanTotalLitersLimit || 50, // This seems to be a separate setting
       totalLimit: totalLimit,
       status: customerData.planStatus || 'inactive',
-      purityLevel: 98.2, // Placeholder
+      purityLevel: 98.2, // Placeholder value
       tdsLevel: parseInt(customerData.tdsAfter || '45', 10),
-      lastServiceDate: customerData.installationDate || new Date().toISOString(), 
-      nextServiceDate: new Date(new Date(customerData.installationDate || Date.now()).setMonth(new Date(customerData.installationDate || Date.now()).getMonth() + 3)).toISOString(),
+      lastServiceDate: installationDate, 
+      nextServiceDate: nextServiceDate.toISOString(),
       totalLiters: totalLiters,
       totalHours: totalHours,
       filterLifeRemaining: Math.max(0, filterLife),
