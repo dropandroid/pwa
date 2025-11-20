@@ -6,14 +6,16 @@ import type { RODevice, UsageData, AppSettings, Alert, CustomerData } from '@/li
 import { calculateDaysRemaining } from '@/lib/helpers';
 import { useAuth } from './use-auth';
 
+const LITERS_PER_HOUR = 12;
+
 const INITIAL_USAGE_HISTORY: UsageData[] = [
-  { day: 'Mon', usage: 32.5, date: '2024-09-02' },
-  { day: 'Tue', usage: 28.0, date: '2024-09-03' },
-  { day: 'Wed', usage: 35.2, date: '2024-09-04' },
-  { day: 'Thu', usage: 29.8, date: '2024-09-05' },
-  { day: 'Fri', usage: 42.1, date: '2024-09-06' },
-  { day: 'Sat', usage: 38.7, date: '2024-09-07' },
-  { day: 'Sun', usage: 28.5, date: '2024-09-08' }
+  { day: 'Mon', usage: 0, date: '2024-09-02' },
+  { day: 'Tue', usage: 0, date: '2024-09-03' },
+  { day: 'Wed', usage: 0, date: '2024-09-04' },
+  { day: 'Thu', usage: 0, date: '2024-09-05' },
+  { day: 'Fri', usage: 0, date: '2024-09-06' },
+  { day: 'Sat', usage: 0, date: '2024-09-07' },
+  { day: 'Sun', usage: 0, date: '2024-09-08' }
 ];
 
 const INITIAL_SETTINGS: AppSettings = {
@@ -21,7 +23,7 @@ const INITIAL_SETTINGS: AppSettings = {
   serviceReminders: true,
   lowPurityAlerts: true,
   dailyReports: false,
-  autoRefresh: true
+  autoRefresh: false // Disabled by default for real data
 };
 
 const createInitialDeviceState = (customerData: CustomerData | null): RODevice => {
@@ -40,40 +42,44 @@ const createInitialDeviceState = (customerData: CustomerData | null): RODevice =
             lastServiceDate: "",
             nextServiceDate: "",
             totalLiters: 0,
+            totalHours: 0,
             filterLifeRemaining: 0,
             lastUsageTime: "",
-            totalHours: 0,
         };
     }
     
-    // Calculate total liters from total hours if available, at a rate of 15L/hour
-    const totalLitersFromHours = (customerData.currentTotalHours || 0) * 15;
-    // Use totalLitersFromHours if it's greater than currentTotalLitersUsed, otherwise fallback
-    const totalLiters = Math.max(totalLitersFromHours, customerData.currentTotalLitersUsed || 0);
+    const totalHours = customerData.currentTotalHours || 0;
+    const totalLiters = totalHours * LITERS_PER_HOUR;
+    const dailyLimit = customerData.currentPlanTotalLitersLimit && customerData.currentPlanTotalLitersLimit > 0 
+        ? customerData.currentPlanTotalLitersLimit
+        : 50; // Default daily limit if not specified
+
+    // Placeholder for filter life calculation
+    const filterLife = 100 - ((totalLiters / 6000) * 100);
 
     return {
       deviceName: customerData.modelInstalled || "My RO Water Purifier",
       serialNumber: customerData.serialNumber || "N/A",
       startDate: customerData.planStartDate || new Date().toISOString(),
       endDate: customerData.planEndDate || new Date().toISOString(),
-      todayUsage: 0, // This would be fetched from device in a real scenario
-      monthlyUsage: totalLiters, // Reflecting total as monthly
-      dailyLimit: (customerData.currentPlanTotalLitersLimit && customerData.currentPlanTotalLitersLimit > 0) ? Math.round(customerData.currentPlanTotalLitersLimit / 30) : 50,
+      todayUsage: 0, // Placeholder, real data would come from device
+      monthlyUsage: totalLiters, 
+      dailyLimit: dailyLimit,
       status: customerData.planStatus || 'inactive',
       purityLevel: 98.2, // Placeholder
       tdsLevel: parseInt(customerData.tdsAfter || '45', 10),
-      lastServiceDate: customerData.installationDate || "2024-07-15", 
+      lastServiceDate: customerData.installationDate || new Date().toISOString(), 
       nextServiceDate: new Date(new Date(customerData.installationDate || Date.now()).setMonth(new Date(customerData.installationDate || Date.now()).getMonth() + 3)).toISOString(),
       totalLiters: totalLiters,
-      totalHours: customerData.currentTotalHours || 0,
-      filterLifeRemaining: 85, // Placeholder
-      lastUsageTime: customerData.updatedAt || new Date().toISOString()
+      totalHours: totalHours,
+      filterLifeRemaining: Math.max(0, filterLife),
+      lastUsageTime: customerData.lastEspSync || customerData.updatedAt || new Date().toISOString()
     };
 }
 
 
 export const useRoData = () => {
-  const { customerData } = useAuth();
+  const { customerData, refreshCustomerData, loading: authLoading } = useAuth();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [roDevice, setRoDevice] = useState<RODevice>(createInitialDeviceState(customerData));
   const [usageHistory, setUsageHistory] = useState<UsageData[]>(INITIAL_USAGE_HISTORY);
@@ -83,46 +89,19 @@ export const useRoData = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
+    // Update device state whenever customerData changes
     setRoDevice(createInitialDeviceState(customerData));
+    if (customerData) {
+      setLastUpdated(new Date(customerData.lastEspSync || customerData.updatedAt || Date.now()));
+    }
   }, [customerData]);
 
-
-  const addWaterUsage = useCallback((liters: number) => {
-    setRoDevice(prev => {
-      const hoursToAdd = liters / 15; // Convert liters to hours
-      const newTotalHours = (prev.totalHours || 0) + hoursToAdd;
-      const newTotalLiters = newTotalHours * 15;
-
-      const newUsage = prev.todayUsage + liters;
-      const newPurity = Math.max(95, prev.purityLevel - (liters * 0.01));
-      const newTDS = Math.min(60, prev.tdsLevel + (liters * 0.02));
-      
-      return {
-        ...prev,
-        todayUsage: Math.round(newUsage * 10) / 10,
-        totalLiters: newTotalLiters,
-        totalHours: newTotalHours,
-        purityLevel: Math.round(newPurity * 10) / 10,
-        tdsLevel: Math.round(newTDS * 10) / 10,
-        lastUsageTime: new Date().toISOString(),
-        filterLifeRemaining: Math.max(0, prev.filterLifeRemaining - (liters * 0.1))
-      };
-    });
-    setLastUpdated(new Date());
-  }, []);
-
-  useEffect(() => {
-    if (settings.autoRefresh) {
-      const interval = setInterval(() => {
-        if (Math.random() > 0.7) {
-          const randomUsage = Math.random() * 2 + 0.5;
-          addWaterUsage(randomUsage);
-        }
-      }, 30000); // Every 30 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [settings.autoRefresh, addWaterUsage]);
+  // This function is now just for triggering a re-fetch of customer data
+  const handleRefresh = useCallback(async () => {
+    setIsLoading(true);
+    await refreshCustomerData();
+    setIsLoading(false);
+  }, [refreshCustomerData]);
 
   useEffect(() => {
     if (!roDevice.endDate) return;
@@ -145,19 +124,11 @@ export const useRoData = () => {
       });
     }
     
-    if (roDevice.filterLifeRemaining <= 20) {
+    if (roDevice.filterLifeRemaining <= 20 && settings.lowPurityAlerts) {
       alerts.push({
         type: 'error',
         message: 'Filter replacement required soon',
         action: 'Order'
-      });
-    }
-    
-    if (roDevice.todayUsage > roDevice.dailyLimit * 0.9 && settings.usageAlerts) {
-      alerts.push({
-        type: 'warning',
-        message: 'Daily usage limit almost reached',
-        action: 'View'
       });
     }
     
@@ -177,38 +148,27 @@ export const useRoData = () => {
       });
     }
     
-    const nextService = new Date(roDevice.nextServiceDate);
-    const today = new Date();
-    const serviceDays = Math.ceil((nextService.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    if (serviceDays <= 7 && settings.serviceReminders) {
-      alerts.push({
-        type: 'info',
-        message: `Service due in ${serviceDays} days`,
-        action: 'Schedule'
-      });
+    const nextServiceDate = roDevice.nextServiceDate ? new Date(roDevice.nextServiceDate) : null;
+    if (nextServiceDate) {
+        const today = new Date();
+        const serviceDays = Math.ceil((nextServiceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        if (serviceDays <= 7 && settings.serviceReminders) {
+            alerts.push({
+                type: 'info',
+                message: `Service due in ${serviceDays} days`,
+                action: 'Schedule'
+            });
+        }
     }
     
     setNotifications(alerts);
   }, [roDevice, settings]);
   
   useEffect(() => {
-    if (customerData) {
+    if (!authLoading) {
         setIsInitialLoading(false);
     }
-  }, [customerData]);
-
-  const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setLastUpdated(new Date());
-      setRoDevice(prev => ({
-        ...prev,
-        purityLevel: Math.max(95, Math.min(99, prev.purityLevel + (Math.random() - 0.5) * 2)),
-        tdsLevel: Math.max(30, Math.min(60, prev.tdsLevel + (Math.random() - 0.5) * 5))
-      }));
-      setIsLoading(false);
-    }, 1000);
-  };
+  }, [authLoading]);
 
   const toggleSetting = (setting: keyof AppSettings) => {
     setSettings(prev => ({
@@ -217,9 +177,14 @@ export const useRoData = () => {
     }));
   };
 
+  const addWaterUsage = useCallback(() => {
+    // This function is now a no-op as data is read-only from the database.
+    // It's kept for API compatibility with components that might still call it.
+  }, []);
+
   return {
     roDevice,
-    setRoDevice,
+    setRoDevice, // Kept for things like mock plan extension, etc.
     usageHistory,
     settings,
     toggleSetting,
@@ -228,6 +193,6 @@ export const useRoData = () => {
     isInitialLoading,
     lastUpdated,
     handleRefresh,
-    addWaterUsage,
+    addWaterUsage, // No-op function
   };
 };

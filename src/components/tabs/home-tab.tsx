@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   FileText
 } from 'lucide-react';
-import { WaterUsageSimulator } from '@/components/water-usage-simulator';
 import { Notifications } from '@/components/notifications';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,17 +18,18 @@ import { useRoData } from '@/hooks/use-ro-data';
 import { calculateDaysRemaining, getDaysElapsed } from '@/lib/helpers';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
+import { RefreshCw } from 'lucide-react';
 
 type HomeTabProps = ReturnType<typeof useRoData>;
 
 export const HomeTab: FC<HomeTabProps> = (props) => {
-  const { roDevice, addWaterUsage, lastUpdated, handleRefresh, isLoading, notifications } = props;
+  const { roDevice, lastUpdated, handleRefresh, isLoading, notifications } = props;
   const { customerData } = useAuth();
   const daysRemaining = calculateDaysRemaining(roDevice.endDate);
   const daysElapsed = getDaysElapsed(roDevice.startDate);
   const totalPlanDays = daysElapsed + daysRemaining;
   const planProgressPercentage = totalPlanDays > 0 ? (daysElapsed / totalPlanDays) * 100 : 0;
-  const usagePercentage = (roDevice.todayUsage / roDevice.dailyLimit) * 100;
+  const usagePercentage = roDevice.dailyLimit > 0 ? (roDevice.todayUsage / roDevice.dailyLimit) * 100 : 0;
   const { toast } = useToast();
 
   const getQualityColor = (value: number, thresholds: [number, number], reverse: boolean = false) => {
@@ -84,12 +84,25 @@ export const HomeTab: FC<HomeTabProps> = (props) => {
         </CardContent>
       </Card>
       
-      <WaterUsageSimulator 
-        addWaterUsage={addWaterUsage}
-        lastUpdated={lastUpdated}
-        handleRefresh={handleRefresh}
-        isLoading={isLoading}
-      />
+      <Card>
+        <CardContent className="p-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </span>
+            <Button
+              onClick={handleRefresh}
+              disabled={isLoading}
+              variant="ghost"
+              size="sm"
+              className="text-primary hover:text-primary/80"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {notifications.length > 0 && <Notifications notifications={notifications} />}
 

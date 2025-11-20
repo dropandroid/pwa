@@ -16,22 +16,8 @@ interface WaterUsageSimulatorProps {
 export const WaterUsageSimulator: FC<WaterUsageSimulatorProps> = ({ addWaterUsage, lastUpdated, handleRefresh, isLoading }) => {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Add Water Usage</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-4 gap-2">
-          {[0.5, 1, 2, 5].map(amount => (
-            <Button
-              key={amount}
-              onClick={() => addWaterUsage(amount)}
-              className="bg-blue-500 hover:bg-blue-600"
-            >
-              +{amount}L
-            </Button>
-          ))}
-        </div>
-        <div className="mt-3 flex justify-between items-center">
+      <CardContent className="p-3">
+        <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">
             Last updated: {lastUpdated.toLocaleTimeString()}
           </span>

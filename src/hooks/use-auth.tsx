@@ -7,6 +7,7 @@ import {
   useEffect,
   useContext,
   ReactNode,
+  useCallback,
 } from "react";
 import {
   onAuthStateChanged,
@@ -40,6 +41,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   requestNotificationPermission: () => Promise<NotificationPermission | 'unsupported'>;
   verifyCustomerPin: (customerId: string, pin: string) => Promise<CustomerData | null>;
+  refreshCustomerData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,15 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { toast } = useToast();
 
-  const setCustomerStatus = (status: CustomerVerificationStatus) => {
-    setCustomerStatusState(status);
-    if (customerData) {
-        const updatedData = { ...customerData, _verificationStatus: status };
-        localStorage.setItem(CUSTOMER_DATA_STORAGE_KEY, JSON.stringify(updatedData));
-    }
-  };
-  
-  const setCustomerData = (data: CustomerData | null) => {
+  const setCustomerData = useCallback((data: CustomerData | null) => {
       setCustomerDataState(data);
       if (data) {
           try {
@@ -87,8 +81,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
           console.log("[Auth Hook] Customer data removed from localStorage.");
       }
-  };
+  }, []);
+
+  const setCustomerStatus = useCallback((status: CustomerVerificationStatus) => {
+    setCustomerStatusState(status);
+    if (customerData) {
+        const updatedData = { ...customerData, _verificationStatus: status };
+        localStorage.setItem(CUSTOMER_DATA_STORAGE_KEY, JSON.stringify(updatedData));
+    }
+  }, [customerData]);
   
+  const refreshCustomerData = useCallback(async () => {
+    if (user?.email) {
+      console.log("[Auth Hook] Refreshing customer data...");
+      const customer = await getCustomerByEmail(user.email);
+      setCustomerData(customer); // Update state and localStorage
+    }
+  }, [user, setCustomerData]);
+
 
   const handleAuthSuccess = async (user: User): Promise<SignInResult> => {
      const userEmail = user.email;
@@ -233,7 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    useEffect(() => {
     if (loading) return;
 
-    const isPublicPage = pathname === '/login' || pathname === '/verify-customer' || pathname.startsWith('/admin');
+    const isPublicPage = pathname === '/login' || pathname === '/verify-customer' || pathname.startsWith('/admin') || pathname === '/install';
 
     // If user is not logged in and not on a public page, redirect to login
     if (!user && !isPublicPage) {
@@ -287,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, auth, loading, customerStatus, customerData, fcmToken, setCustomerStatus, setCustomerData, signInWithGoogle, signOut, requestNotificationPermission, verifyCustomerPin }}>
+    <AuthContext.Provider value={{ user, auth, loading, customerStatus, customerData, fcmToken, setCustomerStatus, setCustomerData, signInWithGoogle, signOut, requestNotificationPermission, verifyCustomerPin, refreshCustomerData }}>
       {children}
     </AuthContext.Provider>
   );

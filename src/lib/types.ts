@@ -7,7 +7,7 @@ export interface RODevice {
   todayUsage: number;
   monthlyUsage: number;
   dailyLimit: number;
-  status: "active" | "inactive" | "EXPIRED" | "ACTIVE";
+  status: "active" | "inactive" | "EXPIRED" | "ACTIVE" | string;
   purityLevel: number;
   tdsLevel: number;
   lastServiceDate: string;
@@ -46,10 +46,10 @@ export interface CustomerData {
   customerPhone: string;
   google_email?: string;
   fcmToken?: string;
-  customerPhotoUrl?: string;
+  customerPhotoUrl?: string | null;
   
   aadhaarNo?: string;
-  altMobileNo?: string;
+  altMobileNo?: string | null;
   city?: string;
   confirmedMapLink?: string;
   country?: string;
@@ -58,6 +58,7 @@ export interface CustomerData {
   currentPlanTotalLitersLimit?: number;
   currentTotalHours?: number;
   currentTotalLitersUsed?: number;
+  deviceStatus?: number;
   driveUrl?: string;
   emailId?: string;
   espCycleMaxHours?: number;
@@ -65,13 +66,14 @@ export interface CustomerData {
   installationDate?: string;
   installationTime?: string;
   landmark?: string;
+  lastEspSync?: string;
   modelInstalled?: string;
   paymentType?: string;
   pincode?: string;
   planEndDate?: string;
   planExpiryTimestamp?: number;
   planStartDate?: string;
-  planStatus?: "active" | "inactive" | "EXPIRED" | "ACTIVE";
+  planStatus?: "active" | "inactive" | "EXPIRED" | "ACTIVE" | string;
   receiptNumber?: string;
   rechargeCount?: number;
   registeredAt?: string;
@@ -80,8 +82,9 @@ export interface CustomerData {
   selectedZone?: string;
   serialNumber?: string;
   stateName?: string;
-  tdsAfter?: string;
-  tdsBefore?: string;
+  tdsAfter?: string | null;
+  tdsBefore?: string | null;
   termsAgreed?: boolean;
   updatedAt?: string;
+  [key: string]: any; // For any other fields like _verificationStatus
 }
