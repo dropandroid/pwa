@@ -15,7 +15,7 @@ import { Notifications } from '@/components/notifications';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRoData } from '@/hooks/use-ro-data';
-import { calculateDaysRemaining, getDaysElapsed } from '@/lib/helpers';
+import { calculateDaysRemaining, getDaysElapsed, getTotalPlanDays } from '@/lib/helpers';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
 import { RefreshCw } from 'lucide-react';
@@ -25,9 +25,10 @@ type HomeTabProps = ReturnType<typeof useRoData>;
 export const HomeTab: FC<HomeTabProps> = (props) => {
   const { roDevice, lastUpdated, handleRefresh, isLoading, notifications } = props;
   const { customerData } = useAuth();
+  
   const daysRemaining = calculateDaysRemaining(roDevice.endDate);
   const daysElapsed = getDaysElapsed(roDevice.startDate);
-  const totalPlanDays = daysElapsed + daysRemaining;
+  const totalPlanDays = getTotalPlanDays(roDevice.startDate, roDevice.endDate);
   const planProgressPercentage = totalPlanDays > 0 ? (daysElapsed / totalPlanDays) * 100 : 0;
   
   const usagePercentage = roDevice.totalLimit > 0 ? (roDevice.totalLiters / roDevice.totalLimit) * 100 : 0;
@@ -90,7 +91,7 @@ export const HomeTab: FC<HomeTabProps> = (props) => {
         <CardContent className="p-3">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">
-              Last updated: {lastUpdated.toLocaleTimeString()}
+              Last synced: {lastUpdated.toLocaleString()}
             </span>
             <Button
               onClick={handleRefresh}
