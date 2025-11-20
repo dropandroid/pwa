@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Wifi, Router, Info, Plus, X, Loader2, AlertTriangle, Power, Clock, Calendar, Droplets, Network, Server, RefreshCw, CheckCircle } from 'lucide-react';
+import { Wifi, Plus, X, Loader2, AlertTriangle, Power, Clock, Calendar, Droplets, Network, Server, RefreshCw, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -63,16 +63,17 @@ const LiveDeviceCard = ({ device, onRemove }: { device: Device, onRemove: (id: s
   const fetchData = async () => {
     // Don't set loading to true on auto-refresh, only on manual refresh
     try {
-      const response = await fetch(`http://${device.ip}/status`);
+      const response = await fetch(`/api/live-status?ip=${device.ip}`);
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
       setStatus(data);
       setError(null);
     } catch (e: any) {
-      console.error(`Failed to fetch status for ${device.ip}`, e);
-      setError('Failed to connect. Check IP and network.');
+      console.error(`Failed to fetch status for ${device.ip} via proxy`, e);
+      setError(e.message || 'Failed to connect. Check IP and network.');
     } finally {
       setLoading(false);
     }
