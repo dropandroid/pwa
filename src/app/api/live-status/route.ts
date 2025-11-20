@@ -1,55 +1,51 @@
 
 import { NextResponse } from 'next/server';
 
+// Define CORS headers to be reused
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+// This is the proxy endpoint. The frontend calls this, and this makes the call to the device.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const ip = searchParams.get('ip');
 
   if (!ip) {
-    return NextResponse.json({ error: 'IP address is required' }, { status: 400 });
+    return NextResponse.json({ error: 'IP address is required' }, { status: 400, headers: CORS_HEADERS });
   }
 
   try {
-    // Set a timeout for the fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
-
+    // The fetch must be done from the server, so it needs the full URL.
     const response = await fetch(`http://${ip}/status`, {
-        signal: controller.signal
+        signal: AbortSignal.timeout(5000) // 5 second timeout to prevent hanging
     });
-    
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
-      // Forward the error from the device if possible
-      const errorText = await response.text();
-      return NextResponse.json({ error: `Device responded with status ${response.status}: ${errorText}` }, { status: response.status });
+       console.error(`[PROXY] Device at ${ip} responded with status: ${response.status}`);
+       return NextResponse.json({ error: `Device responded with status: ${response.status}` }, { status: response.status, headers: CORS_HEADERS });
     }
-
-    const data = await response.json();
     
-    // Add CORS headers to the response to the client
-    const headers = new Headers();
-    headers.set('Access-Control-Allow-Origin', '*');
-    headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    headers.set('Access-Control-Allow-Headers', 'Content-Type');
-
-    return NextResponse.json(data, { headers });
+    const data = await response.json();
+    // Return the data from the device, along with the necessary CORS headers
+    return NextResponse.json(data, { headers: CORS_HEADERS });
 
   } catch (error: any) {
-    console.error(`[API/live-status] Error fetching from ${ip}:`, error);
+    console.error(`[PROXY] Failed to fetch from device at ${ip}:`, error.name, error.message);
+    let errorMessage = 'Failed to connect to the device. Ensure it is online and the IP is correct.';
     if (error.name === 'AbortError') {
-        return NextResponse.json({ error: 'Connection timed out. Device did not respond.' }, { status: 504 });
+        errorMessage = 'Connection timed out. The device did not respond in time.';
     }
-    return NextResponse.json({ error: 'Failed to connect to device. Check IP and network connectivity.' }, { status: 500 });
+    return NextResponse.json({ error: errorMessage }, { status: 504, headers: CORS_HEADERS }); // 504 Gateway Timeout
   }
 }
 
-// Handle preflight requests for CORS
+// This handles the browser's pre-flight 'OPTIONS' request, which is crucial for CORS to work.
 export async function OPTIONS() {
-  const headers = new Headers();
-  headers.set('Access-Control-Allow-Origin', '*');
-  headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type');
-  return new NextResponse(null, { headers });
+  return new NextResponse(null, {
+    status: 204, // No Content
+    headers: CORS_HEADERS,
+  });
 }

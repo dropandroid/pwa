@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Wifi, Plus, X, Loader2, AlertTriangle, Power, Clock, Calendar, Droplets, Network, Server, RefreshCw, CheckCircle } from 'lucide-react';
+import { Wifi, Plus, X, Loader2, AlertTriangle, Power, Clock, Calendar, Network, Server, RefreshCw, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,7 @@ const StatusItem = ({ icon, label, value, valueClass }: { icon: React.ReactNode,
             {icon}
             <span className="ml-2">{label}</span>
         </div>
-        <span className={cn("font-semibold", valueClass)}>{value}</span>
+        <span className={cn("font-semibold text-right", valueClass)}>{value}</span>
     </div>
 );
 
@@ -63,6 +63,7 @@ const LiveDeviceCard = ({ device, onRemove }: { device: Device, onRemove: (id: s
   const fetchData = async () => {
     // Don't set loading to true on auto-refresh, only on manual refresh
     try {
+      // We call our OWN backend proxy, not the device directly.
       const response = await fetch(`/api/live-status?ip=${device.ip}`);
       if (!response.ok) {
         const errorData = await response.json();
@@ -110,7 +111,7 @@ const LiveDeviceCard = ({ device, onRemove }: { device: Device, onRemove: (id: s
         <Card>
             <CardHeader>
                 <CardTitle className="text-base flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Connecting to {device.ip}...</CardTitle>
-                 <CardDescription>Fetching live data...</CardDescription>
+                 <CardDescription>Fetching live data from device...</CardDescription>
             </CardHeader>
             <CardContent className="h-48"></CardContent>
         </Card>
@@ -150,7 +151,7 @@ const LiveDeviceCard = ({ device, onRemove }: { device: Device, onRemove: (id: s
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onRemove(device.id)}><X className="h-4 w-4"/></Button>
                  </div>
             </div>
-             <div className="flex items-center gap-2 mt-3">
+             <div className="flex items-center gap-2 mt-3 flex-wrap">
                 <Badge variant={status.wifiStatus.toLowerCase() === 'connected' ? 'default' : 'destructive'} className={cn(status.wifiStatus.toLowerCase() === 'connected' && "bg-green-600")}>
                     <Wifi className="mr-1.5 h-3 w-3" /> {status.wifiStatus} to "{status.savedSSID}"
                 </Badge>
@@ -162,14 +163,14 @@ const LiveDeviceCard = ({ device, onRemove }: { device: Device, onRemove: (id: s
       <CardContent className="space-y-4">
         <div>
             <div className="flex justify-between text-sm mb-1">
-                <span className="text-muted-foreground">Plan Usage</span>
+                <span className="text-muted-foreground">Plan Usage (Liters)</span>
                 <span>{usageLiters.toFixed(1)}L / {maxLiters.toFixed(0)}L ({usagePercentage.toFixed(1)}%)</span>
             </div>
             <Progress value={usagePercentage} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 border-t pt-4">
-            <StatusItem icon={<Calendar/>} label="Plan Ends" value={status.planEndDate} />
-            <StatusItem icon={<Calendar/>} label="Days Left" value={status.remainingDays} />
+            <StatusItem icon={<Calendar className="text-red-500" />} label="Plan Ends" value={status.planEndDate} />
+            <StatusItem icon={<Calendar className="text-green-500" />} label="Days Left" value={status.remainingDays} />
             <StatusItem icon={<Clock/>} label="Device Time" value={status.deviceTime} />
             <StatusItem icon={<RefreshCw/>} label="Last Sync" value={status.lastSuccessfulSync} />
             <StatusItem icon={<Server/>} label="Firmware" value={status.firmwareVersion} />
@@ -220,7 +221,7 @@ const MonitoringMode = () => {
         toast({
             variant: 'destructive',
             title: 'Device Exists',
-            description: 'This IP address has already been added.',
+            description: 'This IP address is already being monitored.',
         });
         return;
     }
@@ -239,13 +240,13 @@ const MonitoringMode = () => {
         <div className="flex gap-2 mb-4">
             <Input 
                 type="text" 
-                placeholder="Enter device IP address to monitor"
+                placeholder="Enter device IP address"
                 value={ipInput}
                 onChange={e => setIpInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAddDevice()}
             />
             <Button onClick={handleAddDevice}>
-                <Plus className="mr-2 h-4 w-4" /> Add Device
+                <Plus className="mr-2 h-4 w-4" /> Add
             </Button>
         </div>
       {devices.length === 0 ? (
