@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
   try {
     // The fetch must be done from the server, so it needs the full URL.
-    const response = await fetch(`http://${ip}/status`, {
+    const response = await fetch(`${ip}/status`, {
         signal: AbortSignal.timeout(5000) // 5 second timeout to prevent hanging
     });
 
