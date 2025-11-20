@@ -1,11 +1,12 @@
 
 import { NextResponse } from 'next/server';
 
-// Define CORS headers to be reused
+// Define CORS headers to be reused, including the Content-Security-Policy
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Security-Policy': "upgrade-insecure-requests",
 };
 
 // This is the proxy endpoint. The frontend calls this, and this makes the call to the device.
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
 
   try {
     // The fetch must be done from the server, so it needs the full URL.
-    const response = await fetch(`${ip}/status`, {
+    const response = await fetch(`http://${ip}/status`, {
         signal: AbortSignal.timeout(5000) // 5 second timeout to prevent hanging
     });
 
