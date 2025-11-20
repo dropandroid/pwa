@@ -36,6 +36,7 @@ const createInitialDeviceState = (customerData: CustomerData | null): RODevice =
             todayUsage: 0,
             monthlyUsage: 0,
             dailyLimit: 0,
+            totalLimit: 0,
             status: "inactive",
             purityLevel: 0,
             tdsLevel: 0,
@@ -50,10 +51,9 @@ const createInitialDeviceState = (customerData: CustomerData | null): RODevice =
     
     const totalHours = customerData.currentTotalHours || 0;
     const totalLiters = totalHours * LITERS_PER_HOUR;
-    const dailyLimit = customerData.currentPlanTotalLitersLimit && customerData.currentPlanTotalLitersLimit > 0 
-        ? customerData.currentPlanTotalLitersLimit
-        : 50; // Default daily limit if not specified
-
+    const maxHours = customerData.espCycleMaxHours || 1;
+    const totalLimit = maxHours * LITERS_PER_HOUR;
+    
     // Placeholder for filter life calculation
     const filterLife = 100 - ((totalLiters / 6000) * 100);
 
@@ -62,9 +62,10 @@ const createInitialDeviceState = (customerData: CustomerData | null): RODevice =
       serialNumber: customerData.serialNumber || "N/A",
       startDate: customerData.planStartDate || new Date().toISOString(),
       endDate: customerData.planEndDate || new Date().toISOString(),
-      todayUsage: 0, // Placeholder, real data would come from device
+      todayUsage: 0, // This is not available in the data, so it remains a placeholder
       monthlyUsage: totalLiters, 
-      dailyLimit: dailyLimit,
+      dailyLimit: customerData.currentPlanTotalLitersLimit || 50, // daily limit seems separate
+      totalLimit: totalLimit,
       status: customerData.planStatus || 'inactive',
       purityLevel: 98.2, // Placeholder
       tdsLevel: parseInt(customerData.tdsAfter || '45', 10),

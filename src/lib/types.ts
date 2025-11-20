@@ -7,6 +7,7 @@ export interface RODevice {
   todayUsage: number;
   monthlyUsage: number;
   dailyLimit: number;
+  totalLimit: number;
   status: "active" | "inactive" | "EXPIRED" | "ACTIVE" | string;
   purityLevel: number;
   tdsLevel: number;

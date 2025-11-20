@@ -29,7 +29,9 @@ export const HomeTab: FC<HomeTabProps> = (props) => {
   const daysElapsed = getDaysElapsed(roDevice.startDate);
   const totalPlanDays = daysElapsed + daysRemaining;
   const planProgressPercentage = totalPlanDays > 0 ? (daysElapsed / totalPlanDays) * 100 : 0;
-  const usagePercentage = roDevice.dailyLimit > 0 ? (roDevice.todayUsage / roDevice.dailyLimit) * 100 : 0;
+  
+  const usagePercentage = roDevice.totalLimit > 0 ? (roDevice.totalLiters / roDevice.totalLimit) * 100 : 0;
+  
   const { toast } = useToast();
 
   const getQualityColor = (value: number, thresholds: [number, number], reverse: boolean = false) => {
@@ -121,24 +123,24 @@ export const HomeTab: FC<HomeTabProps> = (props) => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Usage</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Usage</CardTitle>
             <Droplets className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{roDevice.todayUsage.toFixed(1)}L</div>
-            <p className="text-xs text-muted-foreground">of {roDevice.dailyLimit}L limit</p>
+            <div className="text-2xl font-bold">{roDevice.totalLiters.toFixed(1)}L</div>
+            <p className="text-xs text-muted-foreground">of {roDevice.totalLimit}L limit</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Daily Usage Progress</CardTitle>
+          <CardTitle className="text-base">Total Usage Progress</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex justify-between text-sm mb-1">
-            <span className="text-muted-foreground">Usage</span>
-            <span>{roDevice.todayUsage.toFixed(1)}L / {roDevice.dailyLimit}L ({Math.round(usagePercentage)}%)</span>
+            <span className="text-muted-foreground">Used</span>
+            <span>{roDevice.totalLiters.toFixed(1)}L / {roDevice.totalLimit.toFixed(1)}L ({Math.round(usagePercentage)}%)</span>
           </div>
           <div className="w-full bg-muted rounded-full h-3">
               <div 
@@ -150,7 +152,7 @@ export const HomeTab: FC<HomeTabProps> = (props) => {
               ></div>
             </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {usagePercentage > 90 ? 'High usage today - consider reducing consumption' : 
+            {usagePercentage > 90 ? 'High usage - nearing plan limit' : 
              usagePercentage > 70 ? 'Moderate usage - within normal range' : 'Normal usage - well within limits'}
           </p>
         </CardContent>
