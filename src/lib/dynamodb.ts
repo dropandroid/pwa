@@ -82,7 +82,7 @@ export const verifyCustomerPin = async (customerId: string, pin: string, userEma
             };
 
             if (fcmToken) {
-                console.log(`[DB] FCM token provided. Adding to update for ${customerId}.`);
+                console.log(`[DB] FCM token provided during verification. Adding to update for ${customerId}.`);
                 updateExpression += ", fcmToken = :token";
                 expressionAttributeValues[":token"] = fcmToken;
             }
@@ -116,6 +116,7 @@ export const saveFcmToken = async (customerId: string, token: string): Promise<b
         ExpressionAttributeValues: {
             ':token': token,
         },
+        ReturnValues: "UPDATED_NEW"
     });
 
     try {

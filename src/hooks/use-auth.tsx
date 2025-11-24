@@ -52,14 +52,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const CUSTOMER_DATA_STORAGE_KEY = 'dropPurityCustomerData';
 
-let pendingToken: string | null = null;
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [customerStatus, setCustomerStatusState] = useState<CustomerVerificationStatus>('unverified');
   const [customerData, setCustomerDataState] = useState<CustomerData | null>(null);
   const [fcmToken, setFcmToken] = useState<string | null>(null);
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionStatus>('loading');
   const router = useRouter();
   const pathname = usePathname();
@@ -73,11 +72,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const saveTokenToDb = useCallback(async (customerId: string, token: string) => {
+    console.log(`[DB] Attempting to save token for customerId: ${customerId}`);
+    try {
+      const success = await saveFcmToken(customerId, token);
+      if (success) {
+        console.log(`[Auth Hook] API call to save token for ${customerId} finished successfully.`);
+      } else {
+        console.error(`[Auth Hook] API call to save token for ${customerId} failed.`);
+      }
+    } catch (error) {
+      console.error("[Auth Hook] Error calling saveFcmToken:", error);
+    }
+  }, []);
+
+
   const setCustomerData = useCallback((data: CustomerData | null) => {
       setCustomerDataState(data);
       if (data) {
           try {
-              // Add verification status to the cached object
               const dataToCache = { ...data, _verificationStatus: 'verified' };
               localStorage.setItem(CUSTOMER_DATA_STORAGE_KEY, JSON.stringify(dataToCache));
               console.log("[Auth Hook] Customer data saved to localStorage.");
@@ -85,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (pendingToken && data.generatedCustomerId) {
                   console.log(`[Auth Hook] Pending token found. Saving token now for ${data.generatedCustomerId}.`);
                   saveTokenToDb(data.generatedCustomerId, pendingToken);
-                  pendingToken = null; 
+                  setPendingToken(null); 
               }
           } catch (e) {
               console.error("[Auth Hook] Failed to save customer data to localStorage", e);
@@ -94,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
           console.log("[Auth Hook] Customer data removed from localStorage.");
       }
-  }, []);
+  }, [pendingToken, saveTokenToDb]);
 
   const setCustomerStatus = useCallback((status: CustomerVerificationStatus) => {
     setCustomerStatusState(status);
@@ -108,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user?.email) {
       console.log("[Auth Hook] Refreshing customer data...");
       const customer = await getCustomerByEmail(user.email);
-      setCustomerData(customer); // Update state and localStorage
+      setCustomerData(customer); 
     }
   }, [user, setCustomerData]);
 
@@ -126,23 +139,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      } else {
        return 'unregistered';
      }
-  };
-
-  const saveTokenToDb = async (customerId: string, token: string) => {
-    console.log(`[DB] Attempting to save token for customerId: ${customerId}`);
-    try {
-      const response = await fetch('/api/save-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: customerId, token: token })
-      });
-      if (!response.ok) {
-        throw new Error(`API call failed with status: ${response.status}`);
-      }
-      console.log("[Auth Hook] API call to save token finished successfully.");
-    } catch (error) {
-      console.error("[Auth Hook] Error calling /api/save-token:", error);
-    }
   };
 
   const signOut = async () => {
@@ -182,8 +178,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log('FCM Token:', currentToken);
             await saveTokenToDb(customerData.generatedCustomerId, currentToken);
           } else {
-            console.log('Customer data not ready, holding token.');
-            pendingToken = currentToken;
+            console.log('Customer data not ready, holding token in pending state.');
+            setPendingToken(currentToken);
           }
         } else {
           console.log('No registration token available.');
@@ -209,12 +205,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const cachedDataString = localStorage.getItem(CUSTOMER_DATA_STORAGE_KEY);
           if (cachedDataString) {
             const parsedData = JSON.parse(cachedDataString);
-            // Verify that the cached data belongs to the currently signed-in user
             if (parsedData.emailId === user.email || parsedData.google_email === user.email) {
               cachedData = parsedData;
               status = parsedData._verificationStatus || 'unverified';
             } else {
-              // Clear stale data if it doesn't match the user
               localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
             }
           }
@@ -223,13 +217,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
         }
       } else {
-        // If no user, ensure local storage is clean
         localStorage.removeItem(CUSTOMER_DATA_STORAGE_KEY);
       }
       
       setCustomerDataState(cachedData);
       setCustomerStatusState(status);
-      setLoading(false); // Set loading to false only after all state is determined
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -261,13 +254,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const isPublicPage = pathname === '/login' || pathname === '/verify-customer' || pathname.startsWith('/admin') || pathname === '/install';
 
-    // If user is not logged in and not on a public page, redirect to login
     if (!user && !isPublicPage) {
       router.push('/login');
       return;
     }
 
-    // If user is logged in, handle routing based on verification status
     if (user) {
       if (customerStatus === 'unverified' && !isPublicPage) {
         router.push('/verify-customer');
@@ -304,7 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error("verifyCustomerPin called without a user email.");
           return null;
       }
-      const data = await dbVerifyCustomerPin(customerId, pin, user.email, fcmToken);
+      const data = await dbVerifyCustomerPin(customerId, pin, user.email, fcmToken || pendingToken);
       if (data) {
           setCustomerData(data);
           setCustomerStatus('verified');
