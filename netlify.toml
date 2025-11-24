@@ -1,0 +1,12 @@
+
+# Netlify build configuration
+[build]
+  command = "next build"
+  publish = ".next"
+
+[functions]
+  # This section configures scheduled functions.
+  # The syntax is standard cron syntax.
+  # This schedule runs the `send-expiry-alerts` function every 6 hours.
+  [functions."send-expiry-alerts"]
+    schedule = "0 */6 * * *"
