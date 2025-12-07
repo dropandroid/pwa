@@ -46,10 +46,16 @@ const createInitialDeviceState = (customerData: CustomerData | null): RODevice =
     const maxHours = customerData.espCycleMaxHours || 1;
     const totalLimit = maxHours * LITERS_PER_HOUR;
     
+    const baseInstallationDate = customerData.installationDate && !isNaN(new Date(customerData.installationDate).getTime())
+        ? new Date(customerData.installationDate)
+        : new Date();
+
+    const installationDate = baseInstallationDate.toISOString();
+
     // Placeholder for filter life calculation, assuming a 6000L filter capacity
     const filterLife = 100 - ((totalLiters / 6000) * 100);
-    const installationDate = customerData.installationDate || new Date().toISOString();
-    const nextServiceDate = new Date(installationDate);
+    
+    const nextServiceDate = new Date(baseInstallationDate);
     nextServiceDate.setMonth(nextServiceDate.getMonth() + 3);
 
 
