@@ -68,11 +68,7 @@ function AppContent() {
   const roData = useRoData();
   const { user, loading, customerStatus, customerData } = useAuth();
 
-  if (loading || !user) {
-    return <SplashScreen />;
-  }
-  
-  if (customerStatus !== 'verified' || !customerData) {
+  if (loading || !user || customerStatus !== 'verified' || !customerData) {
     return <SplashScreen />;
   }
   
