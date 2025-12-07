@@ -36,7 +36,7 @@ interface AuthContextType {
   loading: boolean;
   customerStatus: CustomerVerificationStatus;
   customerData: CustomerData | null;
-  fcmToken: string | null;
+  fcmToken: string | object | null;
   notificationPermission: NotificationPermissionStatus;
   setNotificationPermission: (status: NotificationPermissionStatus) => void;
   setCustomerStatus: (status: CustomerVerificationStatus) => void;
@@ -57,8 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [customerStatus, setCustomerStatusState] = useState<CustomerVerificationStatus>('unverified');
   const [customerData, setCustomerDataState] = useState<CustomerData | null>(null);
-  const [fcmToken, setFcmToken] = useState<string | null>(null);
-  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [fcmToken, setFcmToken] = useState<string | object | null>(null);
+  const [pendingToken, setPendingToken] = useState<string | object | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionStatus>('loading');
   const router = useRouter();
   const pathname = usePathname();
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const saveTokenToDb = useCallback(async (customerId: string, token: string) => {
+  const saveTokenToDb = useCallback(async (customerId: string, token: string | object) => {
     console.log(`[DB] Attempting to save token for customerId: ${customerId}`);
     try {
       const success = await saveFcmToken(customerId, token);
@@ -173,13 +173,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const messaging = getMessaging(app);
         const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
         if (currentToken) {
-          setFcmToken(currentToken);
+          const subscription = await navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription());
+          const tokenToSend = subscription ? subscription.toJSON() : currentToken;
+          
+          setFcmToken(tokenToSend);
           if (customerData?.generatedCustomerId) {
-            console.log('FCM Token:', currentToken);
-            await saveTokenToDb(customerData.generatedCustomerId, currentToken);
+            console.log('FCM Token:', tokenToSend);
+            await saveTokenToDb(customerData.generatedCustomerId, tokenToSend);
           } else {
             console.log('Customer data not ready, holding token in pending state.');
-            setPendingToken(currentToken);
+            setPendingToken(tokenToSend);
           }
         } else {
           console.log('No registration token available.');

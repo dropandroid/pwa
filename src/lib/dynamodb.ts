@@ -63,7 +63,7 @@ export const getCustomerById = async (customerId: string): Promise<CustomerData 
 };
 
 
-export const verifyCustomerPin = async (customerId: string, pin: string, userEmail: string, fcmToken?: string | null): Promise<CustomerData | null> => {
+export const verifyCustomerPin = async (customerId: string, pin: string, userEmail: string, fcmToken?: string | object | null): Promise<CustomerData | null> => {
     const getCommand = new GetCommand({
         TableName: TABLE_NAME,
         Key: { generatedCustomerId: customerId },
@@ -84,7 +84,8 @@ export const verifyCustomerPin = async (customerId: string, pin: string, userEma
             if (fcmToken) {
                 console.log(`[DB] FCM token provided during verification. Adding to update for ${customerId}.`);
                 updateExpression += ", fcmToken = :token";
-                expressionAttributeValues[":token"] = fcmToken;
+                // Ensure the token is a string before saving
+                expressionAttributeValues[":token"] = typeof fcmToken === 'object' ? JSON.stringify(fcmToken) : fcmToken;
             }
 
             const updateCommand = new UpdateCommand({
@@ -105,7 +106,7 @@ export const verifyCustomerPin = async (customerId: string, pin: string, userEma
     }
 };
 
-export const saveFcmToken = async (customerId: string, token: string): Promise<boolean> => {
+export const saveFcmToken = async (customerId: string, token: string | object): Promise<boolean> => {
     console.log(`✅ [Step 4: The Database] Attempting to save token for customerId: ${customerId}`);
     const command = new UpdateCommand({
         TableName: TABLE_NAME,
@@ -114,7 +115,8 @@ export const saveFcmToken = async (customerId: string, token: string): Promise<b
         },
         UpdateExpression: 'SET fcmToken = :token',
         ExpressionAttributeValues: {
-            ':token': token,
+            // Ensure the token is a string before saving
+            ':token': typeof token === 'object' ? JSON.stringify(token) : token,
         },
         ReturnValues: "UPDATED_NEW"
     });
