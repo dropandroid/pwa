@@ -31,6 +31,10 @@ export function PwaGate({ children }: { children: ReactNode }) {
     return () => mediaQuery.removeEventListener('change', checkInstalledStatus);
   }, []);
 
+  // --- DEBUG BYPASS ---
+  // The PWA gate is temporarily bypassed to allow for easier debugging.
+  return <>{children}</>;
+
   // While we're checking, show a loader to prevent content flashing.
   if (isInstalled === null) {
     return (
