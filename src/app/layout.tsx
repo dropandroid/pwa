@@ -30,12 +30,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <PwaGate>
-          <NotificationGate>
-            <AuthProvider>
-              {children}
-              <Toaster />
+           <AuthProvider>
+              <NotificationGate>
+                {children}
+                <Toaster />
+              </NotificationGate>
             </AuthProvider>
-          </NotificationGate>
         </PwaGate>
       </body>
     </html>

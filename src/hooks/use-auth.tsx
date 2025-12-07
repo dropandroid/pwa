@@ -27,7 +27,7 @@ import '@/lib/fcm-listener'; // Import to run the listener code
 
 type CustomerVerificationStatus = 'unverified' | 'verified';
 type SignInResult = 'success' | 'unregistered' | 'error';
-type NotificationPermissionStatus = NotificationPermission | 'unsupported' | 'loading' | 'prompted';
+type NotificationPermissionStatus = NotificationPermission | 'unsupported' | 'loading';
 
 
 interface AuthContextType {
@@ -38,7 +38,6 @@ interface AuthContextType {
   customerData: CustomerData | null;
   fcmToken: string | object | null;
   notificationPermission: NotificationPermissionStatus;
-  setNotificationPermission: (status: NotificationPermissionStatus) => void;
   setCustomerStatus: (status: CustomerVerificationStatus) => void;
   setCustomerData: (data: CustomerData | null) => void;
   signInWithGoogle: () => Promise<SignInResult>;
@@ -163,7 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setNotificationPermission('unsupported');
         return 'unsupported';
     }
-
+    
+    setNotificationPermission('loading');
     const permission = await Notification.requestPermission();
     setNotificationPermission(permission);
 
@@ -307,7 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, auth, loading, customerStatus, customerData, fcmToken, notificationPermission, setNotificationPermission, setCustomerStatus, setCustomerData, signInWithGoogle, signOut, requestNotificationPermission, verifyCustomerPin, refreshCustomerData }}>
+    <AuthContext.Provider value={{ user, auth, loading, customerStatus, customerData, fcmToken, notificationPermission, setCustomerStatus, setCustomerData, signInWithGoogle, signOut, requestNotificationPermission, verifyCustomerPin, refreshCustomerData }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,66 +1,33 @@
 
 'use client';
 
-import { useState, useEffect, ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Bell, BellOff, Loader2, Settings } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { getMessaging, getToken } from 'firebase/messaging';
-import { app } from '@/lib/firebase';
-
-type NotificationPermissionStatus = NotificationPermission | 'unsupported' | 'loading';
+import { useAuth } from '@/hooks/use-auth';
 
 interface NotificationGateProps {
   children: ReactNode;
 }
 
 export function NotificationGate({ children }: NotificationGateProps) {
-  const [permission, setPermission] = useState<NotificationPermissionStatus>('loading');
+  const { notificationPermission, requestNotificationPermission } = useAuth();
 
-  const requestPermission = async () => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.warn('Push notifications not supported in this browser.');
-      setPermission('unsupported');
-      return;
-    }
-
-    setPermission('loading');
-    try {
-      const currentPermission = await Notification.requestPermission();
-      setPermission(currentPermission);
-
-      if (currentPermission === 'granted') {
-        console.log('Notification permission granted.');
-        const messaging = getMessaging(app);
-        const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
-        if (currentToken) {
-          // In a real app, you'd save this token to the server against a user ID *after* login.
-          // For now, we just confirm it's been received.
-          console.log('FCM Token retrieved:', currentToken);
-        }
-      } else {
-        console.log('Unable to get permission to notify.');
-      }
-    } catch (error) {
-      console.error('An error occurred while requesting notification permission:', error);
-      setPermission('denied'); // Assume denied on error
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermission(Notification.permission);
-    } else {
-      setPermission('unsupported');
-    }
-  }, []);
-
-  if (permission === 'granted') {
+  if (notificationPermission === 'granted') {
     return <>{children}</>;
   }
   
   const renderContent = () => {
-    if (permission === 'denied' || permission === 'unsupported') {
+    if (notificationPermission === 'loading') {
+       return (
+         <div className="flex justify-center items-center h-full">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+         </div>
+       )
+    }
+
+    if (notificationPermission === 'denied' || notificationPermission === 'unsupported') {
       return (
         <Card className="border-destructive">
           <CardHeader>
@@ -69,7 +36,7 @@ export function NotificationGate({ children }: NotificationGateProps) {
             </div>
             <CardTitle className="text-center text-destructive">Notifications Required</CardTitle>
             <CardDescription className="text-center">
-              {permission === 'unsupported' 
+              {notificationPermission === 'unsupported' 
                 ? "This browser does not support push notifications, which are required for this app."
                 : "To use the app, you must enable push notifications in your browser or device settings."
               }
@@ -98,9 +65,9 @@ export function NotificationGate({ children }: NotificationGateProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={requestPermission} size="lg" className="w-full" disabled={permission === 'loading'}>
-            {permission === 'loading' ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Bell className="mr-2 h-5 w-5" /> }
-            {permission === 'loading' ? 'Waiting for permission...' : 'Enable Notifications'}
+          <Button onClick={requestNotificationPermission} size="lg" className="w-full" disabled={notificationPermission === 'loading'}>
+            <Bell className="mr-2 h-5 w-5" />
+            Enable Notifications
           </Button>
            <p className="text-xs text-muted-foreground mt-4 text-center">
               We need this to send you critical alerts about plan expiry, service reminders, and water quality issues.
